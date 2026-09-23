@@ -1,5 +1,4 @@
-"""Generate editable Excalidraw scenes and matching PNGs. Requires Pillow."""
-import json
+"""Generate the architecture and circuit-breaker PNGs. Requires Pillow."""
 import math
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -11,18 +10,7 @@ class Diagram:
     def __init__(self, width, height):
         self.image = Image.new("RGB", (width, height), "#ffffff")
         self.draw = ImageDraw.Draw(self.image)
-        self.elements = []
 
-    def element(self, kind, x, y, w, h, **extra):
-        item = dict(id=f"element-{len(self.elements)}", type=kind, x=x, y=y,
-                    width=w, height=h, angle=0, strokeColor=INK,
-                    backgroundColor="transparent", fillStyle="solid", strokeWidth=2,
-                    strokeStyle="solid", roughness=0, opacity=100, groupIds=[],
-                    frameId=None, roundness=None, seed=len(self.elements)+1,
-                    version=1, versionNonce=1, isDeleted=False, boundElements=None,
-                    updated=1, link=None, locked=False)
-        item.update(extra)
-        self.elements.append(item)
 
     def text(self, x, y, text, size=22, color=INK):
         font_path = Path("C:/Windows/Fonts/arial.ttf")
@@ -31,14 +19,9 @@ class Diagram:
         width = max(self.draw.textlength(line, font=font) for line in lines)
         for i, line in enumerate(lines):
             self.draw.text((x, y+i*size*1.3), line, font=font, fill=color)
-        self.element("text", x, y, width, len(lines)*size*1.3,
-                     text=text, originalText=text, fontSize=size, fontFamily=2,
-                     textAlign="left", verticalAlign="top", containerId=None,
-                     autoResize=True, lineHeight=1.3, strokeColor=color)
 
     def box(self, x, y, w, h, title, detail, color="#e8f2ff"):
         self.draw.rounded_rectangle((x,y,x+w,y+h), radius=12, fill=color, outline=INK, width=2)
-        self.element("rectangle", x,y,w,h, backgroundColor=color, roundness={"type":3})
         self.text(x+16,y+14,title,23)
         self.text(x+16,y+49,detail,18)
 
@@ -49,18 +32,9 @@ class Diagram:
         self.draw.polygon([(x,y),(x-12*math.cos(a-.45),y-12*math.sin(a-.45)),
                           (x-12*math.cos(a+.45),y-12*math.sin(a+.45))],fill=color)
         x0,y0=points[0]
-        self.element("arrow", x0,y0,max(p[0] for p in points)-min(p[0] for p in points),
-                     max(p[1] for p in points)-min(p[1] for p in points),
-                     points=[[x-x0,y-y0] for x,y in points],
-                     startBinding=None,endBinding=None,startArrowhead=None,
-                     endArrowhead="arrow",elbowed=False,strokeColor=color)
 
     def save(self, name):
         self.image.save(ROOT / "docs" / f"{name}.png")
-        scene=dict(type="excalidraw", version=2, source="GatewayX",
-                   elements=self.elements,
-                   appState={"viewBackgroundColor":"#ffffff","gridSize":None},files={})
-        (ROOT / "docs" / f"{name}.excalidraw").write_text(json.dumps(scene,indent=2),encoding="utf8")
 
 d=Diagram(1450,950)
 d.text(40,25,"GatewayX | Request flow and data ownership",36)
@@ -115,4 +89,4 @@ d.text(70,725,"Failures: connection errors, timeout, 5xx, invalid JSON; review p
 d.text(70,765,"Normal 4xx responses are healthy for the breaker. Request timeout defaults to 2 seconds.",22)
 d.text(70,815,"Stale in-flight results cannot overwrite a newer state. Defaults are configurable through environment variables.",19,"#64748b")
 d.save("circuit-breaker-state-diagram")
-print("Generated two PNG diagrams and editable Excalidraw scenes.")
+print("Generated two PNG diagrams.")

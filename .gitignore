@@ -9,3 +9,9 @@ coverage/
 !.env.docker.example
 
 services/*/generated/
+
+# Personal API-client artifacts stay local.
+.local/
+docs/postman/
+*.postman_collection.json
+*.postman_environment.json
