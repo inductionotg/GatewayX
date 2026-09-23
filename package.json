@@ -1,0 +1,19 @@
+{
+  "name": "gatewayx",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "setup:local": "node scripts/setup-local.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "private": true,
+  "workspaces": [
+    "gateway",
+    "services/user-service",
+    "services/product-service",
+    "services/review-service"
+  ]
+}

@@ -1,0 +1,12 @@
+**/node_modules
+**/generated
+**/.env
+**/.env.*
+**/.git
+**/.codex
+**/.agents
+**/coverage
+**/test
+**/tests
+**/*.log
+docs

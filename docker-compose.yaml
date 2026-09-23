@@ -1,0 +1,147 @@
+name: gatewayx
+
+services:
+  entry:
+    profiles: ["apps"]
+    image: nginx:1.28-alpine
+    ports:
+      - "127.0.0.1:3380:80"
+    volumes:
+      - ./infrastructure/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      ingress:
+        ipv4_address: 172.30.88.10
+    depends_on:
+      gateway-1:
+        condition: service_healthy
+      gateway-2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/entry-health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gateway-1: &gateway
+    profiles: ["apps"]
+    image: gatewayx-gateway:local
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    init: true
+    env_file:
+      - ./gateway/.env.docker
+    networks: [default, ingress]
+    environment:
+      TRUST_PROXY_ADDRESSES: 172.30.88.10
+    ports:
+      - "127.0.0.1:3320:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      product-service-2:
+        condition: service_healthy
+      review-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+
+  gateway-2:
+    <<: *gateway
+    ports:
+      - "127.0.0.1:3321:3000"
+
+  user-service:
+    profiles: ["apps"]
+    image: gatewayx-user-service:local
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    init: true
+    env_file:
+      - ./services/user-service/.env.docker
+    ports:
+      - "127.0.0.1:3315:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  review-service:
+    profiles: ["apps"]
+    image: gatewayx-review-service:local
+    build:
+      context: .
+      dockerfile: services/review-service/Dockerfile
+    init: true
+    env_file:
+      - ./services/review-service/.env.docker
+    ports:
+      - "127.0.0.1:3313:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  product-service: &product
+    profiles: ["apps"]
+    image: gatewayx-product-service:local
+    build:
+      context: .
+      dockerfile: services/product-service/Dockerfile
+    init: true
+    env_file:
+      - ./services/product-service/.env.docker
+    ports:
+      - "127.0.0.1:3312:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  product-service-2:
+    <<: *product
+    ports:
+      - "127.0.0.1:3314:3002"
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  ingress:
+    ipam:
+      config:
+        - subnet: 172.30.88.0/24
+
+volumes:
+  postgres_data:
+  redis_data:

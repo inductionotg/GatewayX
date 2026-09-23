@@ -1,0 +1,21 @@
+{
+  "name": "gateway",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --env-file=.env --watch src/server.js",
+    "dev:instance2": "node --env-file=.env --env-file=.env.instance2 --watch src/server.js",
+    "start": "node --env-file=.env src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "connect-redis": "^10.0.0",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "redis": "^6.2.1"
+  },
+  "type": "module"
+}
